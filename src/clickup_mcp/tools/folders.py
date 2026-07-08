@@ -86,13 +86,6 @@ class CreateFolderInput(BaseModel):
 
     space_id: str = Field(description="The Space id to create the Folder in.")
     name: str = Field(min_length=1, description="The new Folder's name.")
-    override_statuses: bool = Field(
-        default=False,
-        description=(
-            "Whether this Folder's Lists use Folder-level custom statuses instead of inheriting "
-            "the Space's status workflow."
-        ),
-    )
 
 
 class GetFoldersInput(BaseModel):
@@ -231,12 +224,12 @@ async def clickup_create_folder(params: CreateFolderInput) -> str:
 
     Calls `POST /space/{space_id}/folder`. Folders group Lists within a
     Space; a Folder created here starts empty (use the Lists tools to add
-    Lists to it once t3-lists lands).
+    Lists to it once t3-lists lands). ClickUp's Create Folder endpoint only
+    accepts `name` in the body — to enable Folder-level statuses, call
+    `clickup_update_folder` with `override_statuses=true` after creating.
 
     When to Use:
     - To organize related Lists under one container inside a Space.
-    - To pre-create a Folder that will use its own (non-Space) statuses —
-      set `override_statuses=True`.
 
     When NOT to Use:
     - To create a List that doesn't need a Folder (use the folderless-list
@@ -248,7 +241,7 @@ async def clickup_create_folder(params: CreateFolderInput) -> str:
     `Error ...` string describing the failure.
 
     Examples:
-    params = {"space_id": "90130912", "name": "Q3 Launches", "override_statuses": True}
+    params = {"space_id": "90130912", "name": "Q3 Launches"}
 
     Error Handling:
     404 means `space_id` doesn't exist or isn't accessible; 400 means the
@@ -256,7 +249,7 @@ async def clickup_create_folder(params: CreateFolderInput) -> str:
     """
     try:
         client = get_client()
-        body = {"name": params.name, "override_statuses": params.override_statuses}
+        body = {"name": params.name}
         resp = await client.request("POST", f"/space/{params.space_id}/folder", json_body=body)
         folder = resp.json()
         name = folder.get("name", params.name)

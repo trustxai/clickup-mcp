@@ -67,16 +67,12 @@ async def test_create_folder_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={"id": "456", "name": "Q3 Launches"})
     _patch_client(monkeypatch, fake)
 
-    result = await clickup_create_folder(
-        CreateFolderInput(space_id="90130912", name="Q3 Launches", override_statuses=True)
-    )
+    result = await clickup_create_folder(CreateFolderInput(space_id="90130912", name="Q3 Launches"))
 
     assert "Created folder" in result
     assert "Q3 Launches" in result
     assert "456" in result
-    assert fake.calls == [
-        ("POST", "/space/90130912/folder", {"json_body": {"name": "Q3 Launches", "override_statuses": True}})
-    ]
+    assert fake.calls == [("POST", "/space/90130912/folder", {"json_body": {"name": "Q3 Launches"}})]
 
 
 async def test_create_folder_error(monkeypatch: pytest.MonkeyPatch) -> None:
