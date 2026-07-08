@@ -1,0 +1,63 @@
+{
+  "company": "trustai",
+  "board": {
+    "backend": "repo",
+    "tasks_file": ".memory/tasks.yaml",
+    "memory_dir": ".memory"
+  },
+  "gates": {
+    "default": "uv run pytest -m \"not live\" && uv run ruff check src/ && uv run ruff format --check src/ && uv run mypy src/",
+    "live_smoke": "uv run pytest -m live"
+  },
+  "routing": {
+    "critical": "claude-fable-5",
+    "feature": "claude-opus-4-8",
+    "mechanical": "claude-sonnet-5",
+    "reduction": "claude-haiku-4-5"
+  },
+  "max_parallel": 5,
+  "merge_policy": "human",
+  "review": {
+    "default": "code-review",
+    "flagged_paths": {
+      "src/clickup_mcp/client.py": "ultra+security-review",
+      "src/clickup_mcp/config.py": "ultra+security-review",
+      ".github/workflows/*": "ultra+security-review"
+    }
+  },
+  "creds": {
+    "db": "staging-or-local-only"
+  },
+  "caps": {
+    "loop_iterations": 8,
+    "target_max_turns": 25
+  },
+  "interactive_only": [
+    "auth spike",
+    "schema review",
+    "architecture / strangler design",
+    "cutover",
+    "product decision",
+    "PyPI / OIDC trusted-publishing setup",
+    "GitHub repo creation + branch protection",
+    "release cut",
+    "live smoke against real ClickUp workspace"
+  ],
+  "reversibility_triggers": [
+    {
+      "decision": "publish to PyPI as `clickup-mcp`",
+      "trigger": "PyPI name `clickup-mcp` is already taken or gets squatted before first release",
+      "fallback": "publish as `trustai-clickup-mcp`; console script stays `clickup-mcp`, README documents `uvx --from trustai-clickup-mcp clickup-mcp`"
+    },
+    {
+      "decision": "stdio-only transport (house standard, airbyte-mcp 1.0.0 precedent)",
+      "trigger": "a required client integration cannot spawn a local process (needs remote HTTP/SSE)",
+      "fallback": "add streamable-http transport behind an env flag in a minor release; stdio remains default"
+    },
+    {
+      "decision": "skip legacy time-tracking endpoints (Time Tracking 2.0 only)",
+      "trigger": "a real workspace workflow needs data only the legacy endpoints return",
+      "fallback": "add a `time_tracking_legacy.py` module as a normal wave task"
+    }
+  ]
+}
