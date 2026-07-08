@@ -177,6 +177,11 @@ class CreateKeyResultInput(BaseModel):
     move `steps_current` between `steps_start` and `steps_end`; `boolean` is
     an on/off target (steps 0/1); `automatic` derives progress from the
     linked `task_ids`/`list_ids` instead of manual steps.
+
+    For `type="boolean"`, `steps_start`/`steps_end` are coerced to `0`/`1`
+    when left at their defaults — a boolean key result only ever has two
+    states. Explicitly passing a `steps_end` other than `1` for a boolean
+    key result is rejected rather than silently accepted.
     """
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
@@ -186,15 +191,31 @@ class CreateKeyResultInput(BaseModel):
     type: KeyResultType = Field(description="One of number, currency, boolean, percentage, automatic.")
     owners: list[int] = Field(default_factory=list, description="User ids responsible for this key result.")
     steps_start: int = Field(default=0, description="Starting value of the progress range.")
-    steps_end: int = Field(default=100, description="Target value of the progress range (1 for boolean).")
+    steps_end: int = Field(
+        default=100,
+        description="Target value of the progress range. Ignored/coerced to 1 for type='boolean' "
+        "(boolean key results always use a 0/1 range) unless you explicitly pass a non-1 value, "
+        "which raises a validation error.",
+    )
     unit: str | None = Field(default=None, description="Display unit, e.g. `%`, `$`, `tasks`.")
     task_ids: list[str] | None = Field(default=None, description="Task ids to link for automatic progress tracking.")
     list_ids: list[str] | None = Field(default=None, description="List ids to link for automatic progress tracking.")
 
     @model_validator(mode="after")
-    def _automatic_needs_a_source(self) -> CreateKeyResultInput:
+    def _validate_type_specific_fields(self) -> CreateKeyResultInput:
         if self.type == "automatic" and not self.task_ids and not self.list_ids:
             raise ValueError("type='automatic' requires task_ids and/or list_ids to derive progress from.")
+        if self.type == "boolean":
+            end_explicit = "steps_end" in self.model_fields_set
+            if end_explicit and self.steps_end != 1:
+                raise ValueError(
+                    "type='boolean' key results use a fixed 0/1 progress range "
+                    f"(got steps_end={self.steps_end}); omit steps_start/steps_end to use the default 0/1."
+                )
+            if "steps_start" not in self.model_fields_set:
+                self.steps_start = 0
+            if not end_explicit:
+                self.steps_end = 1
         return self
 
 

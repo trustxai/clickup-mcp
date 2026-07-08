@@ -267,6 +267,18 @@ def test_create_key_result_automatic_requires_source() -> None:
         CreateKeyResultInput(goal_id="goal-1", name="Auto KR", type="automatic")
 
 
+def test_create_key_result_boolean_defaults_coerced_to_0_1() -> None:
+    params = CreateKeyResultInput(goal_id="goal-1", name="Ship it", type="boolean")
+
+    assert params.steps_start == 0
+    assert params.steps_end == 1
+
+
+def test_create_key_result_boolean_rejects_explicit_non_1_steps_end() -> None:
+    with pytest.raises(ValueError, match="boolean"):
+        CreateKeyResultInput(goal_id="goal-1", name="Ship it", type="boolean", steps_end=100)
+
+
 # --- clickup_edit_key_result ------------------------------------------------------
 
 
