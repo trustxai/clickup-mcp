@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from clickup_mcp.tools.docs import (
+    MAX_OUTPUT_CHARS,
     CreateDocInput,
     CreatePageInput,
     DocPageListingInput,
@@ -94,14 +95,24 @@ async def test_search_docs_json_format(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Bare" in result
 
 
+async def test_search_docs_json_format_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The JSON path must go through the same `_cap` byte guard as the other tools."""
+    huge_doc = {"id": "d1", "name": "x" * (MAX_OUTPUT_CHARS + 1_000)}
+    fake = _FakeClient(payload={"docs": [huge_doc]})
+    _patch(monkeypatch, fake)
+
+    result = await clickup_search_docs(SearchDocsInput(workspace_id=WS, response_format="json"))
+
+    assert len(result) <= MAX_OUTPUT_CHARS + len("\n\n…output truncated (response exceeded display cap).")
+    assert result.endswith("…output truncated (response exceeded display cap).")
+
+
 # --------------------------------------------------------------------------- create doc
 async def test_create_doc_in_location(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={"id": "newdoc", "name": "Q3"})
     _patch(monkeypatch, fake)
 
-    result = await clickup_create_doc(
-        CreateDocInput(workspace_id=WS, name="Q3", parent_id="L9", parent_type="list")
-    )
+    result = await clickup_create_doc(CreateDocInput(workspace_id=WS, name="Q3", parent_id="L9", parent_type="list"))
 
     call = fake.calls[0]
     assert call["method"] == "POST"

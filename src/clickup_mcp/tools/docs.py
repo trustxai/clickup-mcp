@@ -406,7 +406,7 @@ async def clickup_search_docs(params: SearchDocsInput) -> str:
         docs, next_cursor = _extract_docs(resp.json())
 
         if params.response_format is ResponseFormat.JSON:
-            return to_json({"count": len(docs), "next_cursor": next_cursor, "docs": docs})
+            return _cap(to_json({"count": len(docs), "next_cursor": next_cursor, "docs": docs}))
 
         shown = docs[:MAX_DISPLAY_ITEMS]
         lines = [f"# Docs ({len(docs)} found)", ""]
@@ -568,7 +568,7 @@ async def clickup_get_doc_page_listing(params: DocPageListingInput) -> str:
         )
         items = _extract_page_listing(resp.json())
         if params.response_format is ResponseFormat.JSON:
-            return to_json({"count": len(items), "page_listing": items})
+            return _cap(to_json({"count": len(items), "page_listing": items}))
         lines = [f"# Page listing for Doc `{params.doc_id}`", ""]
         listing_lines = _format_listing_items(items)
         lines.extend(listing_lines or ["_No pages._"])
