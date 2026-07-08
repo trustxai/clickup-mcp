@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from clickup_mcp.tools.tasks import (
     CreateTaskFromTemplateInput,
@@ -410,3 +411,8 @@ async def test_get_bulk_tasks_time_in_status(monkeypatch: pytest.MonkeyPatch) ->
     call = fake.last
     assert call["path"] == "/task/bulk_time_in_status/task_ids"
     assert call["params"]["task_ids"] == ["86a", "86b"]
+
+
+def test_get_bulk_tasks_time_in_status_rejects_single_id() -> None:
+    with pytest.raises(ValidationError):
+        GetBulkTasksTimeInStatusInput(task_ids=["86a"])

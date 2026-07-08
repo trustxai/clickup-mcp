@@ -561,7 +561,10 @@ class GetBulkTasksTimeInStatusInput(_CustomTaskIdParams):
     """Query for time-in-status across many tasks at once."""
 
     task_ids: list[str] = Field(
-        min_length=1, max_length=100, description="Task ids (up to 100) to fetch time-in-status for."
+        min_length=2,
+        max_length=100,
+        description="Task ids (at least 2, up to 100) to fetch time-in-status for. "
+        "ClickUp's bulk endpoint requires two or more ids.",
     )
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN, description="markdown (default) or json.")
 
@@ -1133,7 +1136,7 @@ async def clickup_get_task_time_in_status(params: GetTaskTimeInStatusInput) -> s
     ),
 )
 async def clickup_get_bulk_tasks_time_in_status(params: GetBulkTasksTimeInStatusInput) -> str:
-    """Report time-in-status for up to 100 tasks in one call.
+    """Report time-in-status for 2 to 100 tasks in one call.
 
     Calls `GET /task/bulk_time_in_status/task_ids` with each id passed as a
     repeated `task_ids` query param. Requires the 'Total time in Status' ClickApp.
@@ -1143,7 +1146,8 @@ async def clickup_get_bulk_tasks_time_in_status(params: GetBulkTasksTimeInStatus
     - Cycle-time analysis across a batch of tasks.
 
     When NOT to Use:
-    - For a single task, `clickup_get_task_time_in_status` is simpler.
+    - For a single task, `clickup_get_task_time_in_status` is simpler — ClickUp's
+      bulk endpoint requires at least 2 task ids.
 
     Returns:
     Markdown grouped per task (current status + history), or raw JSON keyed by
@@ -1153,8 +1157,8 @@ async def clickup_get_bulk_tasks_time_in_status(params: GetBulkTasksTimeInStatus
     - `params = {"task_ids": ["86a", "86b", "86c"]}`
 
     Error Handling:
-    More than 100 ids is rejected client-side; empty results mean the ClickApp is
-    disabled.
+    Fewer than 2 or more than 100 ids is rejected client-side; empty results mean
+    the ClickApp is disabled.
     """
     try:
         client = get_client()
