@@ -78,9 +78,7 @@ async def test_invite_guest_to_workspace(monkeypatch: pytest.MonkeyPatch) -> Non
     fake = _FakeClient(payload={"team": {"guest": GUEST_PAYLOAD["guest"]}})
     monkeypatch.setattr("clickup_mcp.tools.guests.get_client", lambda: fake)
 
-    params = InviteGuestToWorkspaceInput(
-        team_id="123", email="contractor@example.com", can_create_views=False
-    )
+    params = InviteGuestToWorkspaceInput(team_id="123", email="contractor@example.com", can_create_views=False)
     result = await clickup_invite_guest_to_workspace(params)
 
     assert "Invited guest" in result

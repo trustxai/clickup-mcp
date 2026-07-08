@@ -80,9 +80,7 @@ async def test_invite_user_to_workspace_with_custom_role(monkeypatch: pytest.Mon
     fake = _FakeClient(payload={"team": {"members": [{"user": {"id": 789}}]}})
     monkeypatch.setattr("clickup_mcp.tools.users.get_client", lambda: fake)
 
-    params = InviteUserToWorkspaceInput(
-        team_id="123", email="newhire@example.com", admin=True, custom_role_id=5
-    )
+    params = InviteUserToWorkspaceInput(team_id="123", email="newhire@example.com", admin=True, custom_role_id=5)
     await clickup_invite_user_to_workspace(params)
 
     _, _, kwargs = fake.calls[0]

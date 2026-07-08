@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from clickup_mcp.tools.custom_fields import (
     GetCustomTaskTypesInput,
@@ -174,9 +175,7 @@ async def test_set_value_date_with_value_options(monkeypatch: pytest.MonkeyPatch
     _patch(monkeypatch, fake)
 
     await clickup_set_custom_field_value(
-        SetCustomFieldValueInput(
-            task_id="9hz", field_id="f-uuid", value=1667367645000, value_options={"time": True}
-        )
+        SetCustomFieldValueInput(task_id="9hz", field_id="f-uuid", value=1667367645000, value_options={"time": True})
     )
 
     assert fake.calls[0].json_body == {"value": 1667367645000, "value_options": {"time": True}}
@@ -199,9 +198,7 @@ async def test_set_value_task_relationship_add_rem(monkeypatch: pytest.MonkeyPat
     _patch(monkeypatch, fake)
 
     await clickup_set_custom_field_value(
-        SetCustomFieldValueInput(
-            task_id="9hz", field_id="f-uuid", value={"add": ["abcd1234"], "rem": ["jklm9876"]}
-        )
+        SetCustomFieldValueInput(task_id="9hz", field_id="f-uuid", value={"add": ["abcd1234"], "rem": ["jklm9876"]})
     )
 
     assert fake.calls[0].json_body == {"value": {"add": ["abcd1234"], "rem": ["jklm9876"]}}
@@ -282,9 +279,7 @@ async def test_get_custom_task_types_json(monkeypatch: pytest.MonkeyPatch) -> No
     fake = _FakeClient(payload={"custom_items": [{"id": 1300, "name": "Bug"}]})
     _patch(monkeypatch, fake)
 
-    result = await clickup_get_custom_task_types(
-        GetCustomTaskTypesInput(team_id="9007200144", response_format="json")
-    )
+    result = await clickup_get_custom_task_types(GetCustomTaskTypesInput(team_id="9007200144", response_format="json"))
 
     parsed = json.loads(result)
     assert parsed["count"] == 1
@@ -314,5 +309,5 @@ async def test_error_path_maps_to_string(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_extra_fields_forbidden() -> None:
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SetCustomFieldValueInput(task_id="9hz", field_id="f", value=1, bogus="x")  # type: ignore[call-arg]

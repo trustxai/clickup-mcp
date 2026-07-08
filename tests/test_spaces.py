@@ -89,10 +89,6 @@ async def test_create_space_ok(monkeypatch: pytest.MonkeyPatch) -> None:
         name="Engineering",
         multiple_assignees=True,
         features={"due_dates": {"enabled": True}, "time_tracking": {"enabled": False}},
-        statuses=[
-            {"status": "to do", "type": "open", "orderindex": 0, "color": "#d3d3d3"},
-            {"status": "done", "type": "closed", "orderindex": 1, "color": "#6bc950"},
-        ],
     )
     result = await clickup_create_space(params)
 
@@ -108,7 +104,8 @@ async def test_create_space_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body["features"]["due_dates"]["enabled"] is True
     assert body["features"]["time_tracking"]["enabled"] is False
     assert "tags" not in body["features"]
-    assert body["statuses"][0]["status"] == "to do"
+    # The public API ignores custom statuses — the tool must not send them.
+    assert "statuses" not in body
 
 
 async def test_create_space_uses_default_team_id_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -278,23 +275,14 @@ async def test_update_space_partial_body(monkeypatch: pytest.MonkeyPatch) -> Non
     assert body == {"name": "Renamed", "private": True}
 
 
-async def test_update_space_statuses_payload(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake = _FakeClient(payload=SPACE_PAYLOAD)
-    monkeypatch.setattr("clickup_mcp.tools.spaces.get_client", lambda: fake)
-
-    params = UpdateSpaceInput(
-        space_id="90130012345",
-        statuses=[
-            {"status": "to do", "type": "open", "orderindex": 0, "color": "#d3d3d3"},
-            {"status": "blocked", "type": "custom", "orderindex": 1, "color": "#e50000"},
-            {"status": "done", "type": "closed", "orderindex": 2, "color": "#6bc950"},
-        ],
-    )
-    await clickup_update_space(params)
-
-    _, _, kwargs = fake.calls[0]
-    body = kwargs["json_body"]
-    assert [s["status"] for s in body["statuses"]] == ["to do", "blocked", "done"]
+async def test_update_space_rejects_statuses_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The public API silently ignores custom statuses (verified live), so the
+    # input model must reject the field outright instead of teasing the LLM.
+    with pytest.raises(ValidationError):
+        UpdateSpaceInput(
+            space_id="90130012345",
+            statuses=[{"status": "to do", "type": "open", "orderindex": 0, "color": "#d3d3d3"}],
+        )
 
 
 async def test_update_space_features_partial(monkeypatch: pytest.MonkeyPatch) -> None:
