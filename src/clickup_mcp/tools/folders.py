@@ -379,9 +379,9 @@ async def clickup_update_folder(params: UpdateFolderInput) -> str:
     this Folder (and Lists inside it, unless a List overrides further) from
     inheriting the Space's status workflow to a Folder-level custom one;
     this endpoint only flips the flag — inspect the resulting statuses with
-    `clickup_get_folder` (ClickUp does not expose a separate "set Folder
-    statuses" endpoint in this API family; the custom status array itself is
-    managed the same way Space statuses are — see `clickup_update_space`).
+    `clickup_get_folder`. Note: the status definitions themselves cannot be
+    set through the public API (same limitation as Space statuses, verified
+    live for Spaces) — define custom statuses in the ClickUp UI.
 
     When to Use:
     - To rename a Folder.

@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from clickup_mcp.formatters import ResponseFormat
 from clickup_mcp.tools.views import (
@@ -117,7 +118,9 @@ async def test_create_folder_view(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={"view": VIEW})
     monkeypatch.setattr("clickup_mcp.tools.views.get_client", lambda: fake)
 
-    result = await clickup_create_folder_view(CreateFolderViewInput(folder_id="789", name="Backlog Table", type="table"))
+    result = await clickup_create_folder_view(
+        CreateFolderViewInput(folder_id="789", name="Backlog Table", type="table")
+    )
 
     assert "Created" in result
     assert "Folder 789" in result
@@ -140,7 +143,7 @@ async def test_create_list_view(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_create_view_extra_field_forbidden() -> None:
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CreateTeamViewInput(team_id="123", name="x", type="board", bogus="nope")  # type: ignore[call-arg]
 
 

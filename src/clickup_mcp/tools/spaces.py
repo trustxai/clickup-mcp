@@ -1,16 +1,19 @@
-"""Spaces tool module — Space CRUD, ClickApp feature toggles, and status workflows.
+"""Spaces tool module — Space CRUD and ClickApp feature toggles.
 
 Wave 1 — task t1-spaces. A Space is the top-level container inside a Workspace
-(Team); Folders and Lists live inside it. ClickUp has no dedicated "statuses"
-API — the *only* way to manage a Space's status workflow is through the
-`statuses` array on Create/Update Space, alongside the `features` object that
-toggles ClickApps (due dates, time tracking, tags, …). See the Examples:
-blocks below for both.
+(Team); Folders and Lists live inside it. The `features` object toggles
+ClickApps (due dates, time tracking, tags, …).
+
+Status workflows: the public API does NOT support defining custom statuses.
+Verified live 2026-07-08 — a `statuses` array sent on Create/Update Space is
+silently ignored (the Space keeps its default statuses), and ClickUp exposes
+no statuses endpoint. Statuses appear read-only in responses; manage them in
+the ClickUp UI.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field
@@ -100,20 +103,6 @@ class SpaceFeatures(BaseModel):
         return {name: value.model_dump() for name, value in fields.items() if value is not None}
 
 
-class SpaceStatus(BaseModel):
-    """One entry in a Space-level custom status workflow (`statuses` array)."""
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-
-    status: str = Field(..., min_length=1, description="Status label as it appears on task cards, e.g. 'to do'.")
-    type: Literal["open", "custom", "closed"] = Field(
-        ...,
-        description="Status category: 'open' (workflow start), 'custom' (in-progress-style), or 'closed' (done).",
-    )
-    orderindex: int = Field(..., ge=0, description="Position in the workflow, 0-based, lowest first.")
-    color: str = Field(..., min_length=1, description="Hex color for the status chip, e.g. '#d3d3d3'.")
-
-
 class CreateSpaceInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
@@ -127,20 +116,11 @@ class CreateSpaceInput(BaseModel):
         default=None,
         description="ClickApp toggles (due_dates, time_tracking, tags, …). Omit to use ClickUp's defaults.",
     )
-    statuses: list[SpaceStatus] | None = Field(
-        default=None,
-        description=(
-            "Custom status workflow to replace ClickUp's four default statuses. There is no "
-            "dedicated statuses endpoint — this is the only way to set them."
-        ),
-    )
 
     def to_body(self) -> dict[str, Any]:
         body: dict[str, Any] = {"name": self.name, "multiple_assignees": self.multiple_assignees}
         if self.features is not None:
             body["features"] = self.features.to_body()
-        if self.statuses is not None:
-            body["statuses"] = [status.model_dump() for status in self.statuses]
         return body
 
 
@@ -190,10 +170,6 @@ class UpdateSpaceInput(BaseModel):
     features: SpaceFeatures | None = Field(
         default=None, description="ClickApp toggles to change; fields left unset are not sent."
     )
-    statuses: list[SpaceStatus] | None = Field(
-        default=None,
-        description="Replace the Space's status workflow with this array — the only way to edit statuses.",
-    )
 
     def to_body(self) -> dict[str, Any]:
         body: dict[str, Any] = {}
@@ -209,8 +185,6 @@ class UpdateSpaceInput(BaseModel):
             body["multiple_assignees"] = self.multiple_assignees
         if self.features is not None:
             body["features"] = self.features.to_body()
-        if self.statuses is not None:
-            body["statuses"] = [status.model_dump() for status in self.statuses]
         return body
 
 
@@ -284,17 +258,18 @@ async def clickup_create_space(params: CreateSpaceInput) -> str:
 
     A Space is the top-level container below a Workspace (Team) — Folders and
     Lists live inside it. Use `features` to toggle ClickApps (due dates, time
-    tracking, tags, …) and `statuses` to set a custom status workflow —
-    ClickUp has no dedicated statuses endpoint, so this is the only way to
-    define them at creation time (or later via `clickup_update_space`).
+    tracking, tags, …). Note: custom status workflows CANNOT be set through the
+    public API (a `statuses` payload is silently ignored — verified live);
+    the new Space gets ClickUp's default statuses, editable only in the UI.
 
     When to Use:
     - Setting up a new top-level area of work (e.g. a new team or project line).
-    - Provisioning a Space with a specific ClickApp/status configuration up front.
+    - Provisioning a Space with a specific ClickApp configuration up front.
 
     When NOT to Use:
     - To create a Folder or List inside an existing Space (use the folders/lists tools).
-    - To change statuses/features on a Space that already exists (use `clickup_update_space`).
+    - To change features on a Space that already exists (use `clickup_update_space`).
+    - To define custom statuses — the public API cannot; do it in the ClickUp UI.
 
     Returns:
     A one-line confirmation naming the new Space and its id, or an `Error ...`
@@ -305,16 +280,11 @@ async def clickup_create_space(params: CreateSpaceInput) -> str:
         "name": "Engineering",
         "multiple_assignees": True,
         "features": {"due_dates": {"enabled": True}, "time_tracking": {"enabled": False}},
-        "statuses": [
-            {"status": "to do", "type": "open", "orderindex": 0, "color": "#d3d3d3"},
-            {"status": "in progress", "type": "custom", "orderindex": 1, "color": "#a875ff"},
-            {"status": "done", "type": "closed", "orderindex": 2, "color": "#6bc950"},
-        ],
     }
 
     Error Handling:
-    400 means a malformed features/statuses payload; 401/403 mean the token
-    lacks access to the Workspace.
+    400 means a malformed features payload; 401/403 mean the token lacks
+    access to the Workspace.
     """
     try:
         team_id = _resolve_team_id(params.team_id)
@@ -438,21 +408,21 @@ async def clickup_get_space(params: GetSpaceInput) -> str:
     ),
 )
 async def clickup_update_space(params: UpdateSpaceInput) -> str:
-    """Rename a Space, change its color/privacy, or replace its ClickApp/status configuration.
+    """Rename a Space, change its color/privacy, or toggle its ClickApp features.
 
     Only fields you set are sent — omitted fields are left unchanged
-    server-side. `statuses` and `features` are ClickUp's only way to manage a
-    Space's status workflow and ClickApp toggles (there is no separate
-    statuses/ClickApps API).
+    server-side. Note: custom status workflows CANNOT be changed through the
+    public API (a `statuses` payload is silently ignored — verified live);
+    manage statuses in the ClickUp UI.
 
     When to Use:
     - Renaming a Space or toggling ClickApps (due dates, time tracking, tags, …).
-    - Replacing the status workflow, e.g. adding a "blocked" custom status.
     - Making a Space private, or (Enterprise) setting `admin_can_manage`.
 
     When NOT to Use:
     - To change a Folder's or List's own status override (use the folders/lists tools).
     - To delete a Space (use `clickup_delete_space`).
+    - To edit custom statuses — the public API cannot; do it in the ClickUp UI.
 
     Returns:
     A one-line confirmation naming the Space and which fields changed, or an `Error ...` string.
@@ -460,15 +430,12 @@ async def clickup_update_space(params: UpdateSpaceInput) -> str:
     Examples:
     params = {
         "space_id": "90130012345",
-        "statuses": [
-            {"status": "to do", "type": "open", "orderindex": 0, "color": "#d3d3d3"},
-            {"status": "blocked", "type": "custom", "orderindex": 1, "color": "#e50000"},
-            {"status": "done", "type": "closed", "orderindex": 2, "color": "#6bc950"},
-        ],
+        "name": "Engineering (EU)",
+        "features": {"time_tracking": {"enabled": True}},
     }
 
     Error Handling:
-    400 means a malformed features/statuses payload; 404 means space_id is wrong.
+    400 means a malformed features payload; 404 means space_id is wrong.
     """
     try:
         client = get_client()

@@ -59,9 +59,7 @@ def _patch(monkeypatch: pytest.MonkeyPatch, fake: _FakeClient) -> None:
 
 # --------------------------------------------------------------------------- get channels
 async def test_get_channels_happy(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake = _FakeClient(
-        payload={"data": [{"id": "c1", "name": "General", "type": "CHANNEL", "visibility": "PUBLIC"}]}
-    )
+    fake = _FakeClient(payload={"data": [{"id": "c1", "name": "General", "type": "CHANNEL", "visibility": "PUBLIC"}]})
     _patch(monkeypatch, fake)
 
     result = await clickup_get_chat_channels(
@@ -217,9 +215,7 @@ async def test_get_channel_json(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={"channel": {"id": "c1", "name": "Wrapped"}})
     _patch(monkeypatch, fake)
 
-    result = await clickup_get_chat_channel(
-        GetChannelInput(workspace_id=WS, channel_id="c1", response_format="json")
-    )
+    result = await clickup_get_chat_channel(GetChannelInput(workspace_id=WS, channel_id="c1", response_format="json"))
 
     # unwraps the "channel" key
     assert '"name": "Wrapped"' in result
@@ -279,9 +275,7 @@ async def test_delete_channel(monkeypatch: pytest.MonkeyPatch) -> None:
 
 # --------------------------------------------------------------------------- followers / members
 async def test_get_followers(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake = _FakeClient(
-        payload={"data": [{"id": "u1", "username": "Ana", "email": "ana@x.io"}], "next_cursor": "N2"}
-    )
+    fake = _FakeClient(payload={"data": [{"id": "u1", "username": "Ana", "email": "ana@x.io"}], "next_cursor": "N2"})
     _patch(monkeypatch, fake)
 
     result = await clickup_get_chat_channel_followers(ChannelMembersInput(workspace_id=WS, channel_id="c1"))
@@ -296,9 +290,7 @@ async def test_get_members_nested_user(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={"members": [{"user": {"id": "u2", "username": "Bo"}}]})
     _patch(monkeypatch, fake)
 
-    result = await clickup_get_chat_channel_members(
-        ChannelMembersInput(workspace_id=WS, channel_id="c1", cursor="C1")
-    )
+    result = await clickup_get_chat_channel_members(ChannelMembersInput(workspace_id=WS, channel_id="c1", cursor="C1"))
 
     call = fake.calls[0]
     assert call["path"] == f"/workspaces/{WS}/chat/channels/c1/members"

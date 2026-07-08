@@ -289,8 +289,12 @@ async def clickup_get_entity_attachments(params: GetEntityAttachmentsInput) -> s
     - custom field: `params = {"workspace_id": "123", "entity_type": "custom_fields", "entity_id": "fld-1", "limit": 20}`
 
     Error Handling:
-    A 404 means the entity_id was not found; a 400 usually means entity_type and
-    entity_id do not match (e.g. a Custom Field ID with entity_type='attachments').
+    A 404 means the entity_id was not found — or the v3 attachments surface is
+    not available on this Workspace at all (verified live on a Business-plan
+    workspace: even reads 404). If both tools here 404 on ids that definitely
+    exist, fall back to `clickup_create_task_attachment` (v2) for task files.
+    A 400 usually means entity_type and entity_id do not match (e.g. a Custom
+    Field ID with entity_type='attachments').
     """
     try:
         client = get_client()
@@ -358,7 +362,10 @@ async def clickup_create_entity_attachment(params: CreateEntityAttachmentInput) 
 
     Error Handling:
     A ValidationError before the request means the path is missing/empty/too
-    large; a 404 means the entity_id was not found.
+    large; a 404 means the entity_id was not found — or the v3 attachments
+    surface is not available on this Workspace (verified live: some plans 404
+    on this endpoint entirely; use `clickup_create_task_attachment` for task
+    files in that case).
     """
     try:
         client = get_client()

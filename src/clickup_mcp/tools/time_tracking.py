@@ -585,6 +585,9 @@ async def clickup_create_time_entry(params: CreateTimeEntryInput) -> str:
     Error Handling:
     400 means the payload is malformed (e.g. neither `duration` nor `stop`
     given, or a bad `start`); 404 means `tid` doesn't reference a real task.
+    400 with ECODE TIMEENTRY_072 ("Cannot track time for this task") means the
+    Time Tracking ClickApp is disabled in that task's Space — enable it via
+    `clickup_update_space` features or track without `tid` (verified live).
     """
     try:
         team_id = _resolve_team_id(params.team_id)

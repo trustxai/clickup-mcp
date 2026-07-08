@@ -161,9 +161,7 @@ async def test_query_audit_logs_enterprise_403(monkeypatch: pytest.MonkeyPatch) 
     fake = _FakeClient(exc=_http_error(403))
     _patch(monkeypatch, fake)
 
-    result = await clickup_query_audit_logs(
-        QueryAuditLogsInput(workspace_id=TEAM, applicability="auth-and-security")
-    )
+    result = await clickup_query_audit_logs(QueryAuditLogsInput(workspace_id=TEAM, applicability="auth-and-security"))
 
     assert result.startswith("Error (403)")
     assert "Enterprise" in result
