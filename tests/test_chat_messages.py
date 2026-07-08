@@ -167,14 +167,14 @@ async def test_send_message_post_with_post_data(monkeypatch: pytest.MonkeyPatch)
             channel_id=CH,
             content="Kickoff",
             message_type="post",
-            post_data={"subtype_id": "123"},
+            post_data={"subtype": {"id": "123"}},
             followers=["u1", "u2"],
         )
     )
 
     body = fake.calls[0]["json_body"]
     assert body["type"] == "post"
-    assert body["post_data"] == {"subtype_id": "123"}
+    assert body["post_data"] == {"subtype": {"id": "123"}}
     assert body["followers"] == ["u1", "u2"]
     assert "p9" in result
 
@@ -225,7 +225,7 @@ async def test_update_message_content_and_resolved(monkeypatch: pytest.MonkeyPat
     assert call["path"] == f"/workspaces/{WS}/chat/messages/{MSG}"
     assert call["json_body"]["content"] == "edited"
     assert call["json_body"]["content_format"] == "text/md"
-    assert call["json_body"]["post_data"] == {"resolved": True}
+    assert call["json_body"]["resolved"] is True
     assert "content" in result and "resolved" in result
 
 
@@ -252,9 +252,7 @@ async def test_add_reaction_lowercases(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _FakeClient(payload={})
     _patch(monkeypatch, fake)
 
-    result = await clickup_add_chat_reaction(
-        AddChatReactionInput(workspace_id=WS, message_id=MSG, reaction="ThumbsUp")
-    )
+    result = await clickup_add_chat_reaction(AddChatReactionInput(workspace_id=WS, message_id=MSG, reaction="ThumbsUp"))
 
     call = fake.calls[0]
     assert call["method"] == "POST"
@@ -275,6 +273,18 @@ async def test_delete_reaction_path_segment(monkeypatch: pytest.MonkeyPatch) -> 
     assert call["method"] == "DELETE"
     assert call["path"] == f"/workspaces/{WS}/chat/messages/{MSG}/reactions/heart"
     assert "heart" in result
+
+
+async def test_delete_reaction_path_segment_url_encodes_emoji(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = _FakeClient(payload={})
+    _patch(monkeypatch, fake)
+
+    result = await clickup_delete_chat_reaction(DeleteChatReactionInput(workspace_id=WS, message_id=MSG, reaction="+1"))
+
+    call = fake.calls[0]
+    assert call["method"] == "DELETE"
+    assert call["path"] == f"/workspaces/{WS}/chat/messages/{MSG}/reactions/%2B1"
+    assert "+1" in result
 
 
 async def test_get_reactions_happy(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -328,3 +338,11 @@ async def test_get_subtypes_json_bare_array(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert '"count": 1' in result and "Idea" in result
     assert fake.calls[0]["path"] == f"/workspaces/{WS}/comments/types/ai/subtypes"
+
+
+# --------------------------------------------------------------------------- live smoke (read-only)
+@pytest.mark.live
+async def test_get_chat_subtypes_live() -> None:
+    result = await clickup_get_chat_subtypes(GetChatSubtypesInput())
+    assert isinstance(result, str)
+    assert not result.startswith("Error")

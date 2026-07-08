@@ -24,6 +24,7 @@ Conventions shared with the other v3 modules (Docs, Chat channels):
 
 from __future__ import annotations
 
+import urllib.parse
 from enum import StrEnum
 from typing import Any
 
@@ -247,7 +248,10 @@ class SendChatMessageInput(_WorkspaceMixin):
     )
     post_data: dict[str, Any] | None = Field(
         default=None,
-        description="Post payload for message_type='post' (e.g. {'subtype_id': '...'} from clickup_get_chat_subtypes).",
+        description=(
+            "Post payload for message_type='post': {'subtype': {'id': '...'}} using an id "
+            "from clickup_get_chat_subtypes (title is also allowed alongside subtype)."
+        ),
     )
 
 
@@ -263,7 +267,7 @@ class UpdateChatMessageInput(_WorkspaceMixin):
     group_assignee: str | None = Field(default=None, description="New group-assignee id (omit to leave unchanged).")
     resolved: bool | None = Field(
         default=None,
-        description="Mark the message resolved/unresolved (sent as post_data.resolved). Omit to leave unchanged.",
+        description="Mark the message resolved/unresolved (sent as a top-level `resolved` field). Omit to leave unchanged.",
     )
 
     @model_validator(mode="after")
@@ -617,8 +621,9 @@ async def clickup_get_chat_subtypes(params: GetChatSubtypesInput) -> str:
     """List a Workspace's post subtype IDs (Announcement, Discussion, Idea, Update).
 
     Subtype IDs are unique per Workspace and are required when sending a rich
-    'post' message: pass the chosen id via `post_data` on `clickup_send_chat_message`
-    (or `clickup_send_chat_reply`) with message_type='post'.
+    'post' message: pass the chosen id via `post_data={"subtype": {"id": "..."}}`
+    on `clickup_send_chat_message` (or `clickup_send_chat_reply`) with
+    message_type='post'.
 
     When to Use:
     - Before sending a post-type chat message, to resolve the subtype id to use.
@@ -673,8 +678,8 @@ async def clickup_send_chat_message(params: SendChatMessageInput) -> str:
     """Post a new message to a Chat channel.
 
     Defaults to a plain 'message'. For a rich 'post' (Announcement/Discussion/Idea/
-    Update), set message_type='post' and pass the subtype id in `post_data` — get
-    the id from `clickup_get_chat_subtypes`.
+    Update), set message_type='post' and pass the subtype id in
+    `post_data={"subtype": {"id": "..."}}` — get the id from `clickup_get_chat_subtypes`.
 
     When to Use:
     - To send a message into a channel.
@@ -689,7 +694,7 @@ async def clickup_send_chat_message(params: SendChatMessageInput) -> str:
     Examples:
     - params = {"channel_id": "6-901...", "content": "Deploy is green ✅"}
     - params = {"channel_id": "6-901...", "content": "Q3 kickoff", "message_type": "post",
-                "post_data": {"subtype_id": "123"}}
+                "post_data": {"subtype": {"id": "123"}}}
 
     Error Handling:
     400 → bad body (e.g. content too long); 404 → unknown channel. Errors return an
@@ -794,8 +799,8 @@ async def clickup_send_chat_reply(params: SendChatReplyInput) -> str:
 async def clickup_update_chat_message(params: UpdateChatMessageInput) -> str:
     """Edit a Chat message's content, assignee, or resolved state.
 
-    Send only the fields you want to change; `resolved` is applied via the
-    message's `post_data`.
+    Send only the fields you want to change; `resolved` is a top-level
+    body field (not part of `post_data`).
 
     When to Use:
     - To fix a message's text, (re)assign it, or mark a post resolved/unresolved.
@@ -829,7 +834,7 @@ async def clickup_update_chat_message(params: UpdateChatMessageInput) -> str:
             body["group_assignee"] = params.group_assignee
             changed.append("group_assignee")
         if params.resolved is not None:
-            body["post_data"] = {"resolved": params.resolved}
+            body["resolved"] = params.resolved
             changed.append("resolved")
         client = get_client()
         await client.request(
@@ -963,9 +968,10 @@ async def clickup_delete_chat_reaction(params: DeleteChatReactionInput) -> str:
     try:
         workspace_id = _resolve_workspace_id(params.workspace_id)
         client = get_client()
+        encoded_reaction = urllib.parse.quote(params.reaction, safe="")
         await client.request(
             "DELETE",
-            f"/workspaces/{workspace_id}/chat/messages/{params.message_id}/reactions/{params.reaction}",
+            f"/workspaces/{workspace_id}/chat/messages/{params.message_id}/reactions/{encoded_reaction}",
             use_v3=True,
         )
         return f"Removed reaction `{params.reaction}` from message `{params.message_id}`."
