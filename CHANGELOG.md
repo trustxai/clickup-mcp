@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.1](https://github.com/trustxai/clickup-mcp/compare/v0.1.0...v0.1.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* apply live-smoke findings (t19) ([03090f1](https://github.com/trustxai/clickup-mcp/commit/03090f106b81b955c63f958fa0b380b558b89999))
+* apply t19 live-smoke findings (statuses are UI-only, v3 attachments availability, TIMEENTRY_072) ([836d696](https://github.com/trustxai/clickup-mcp/commit/836d696ada3c00c2d1ce54bff8852b9ba2f3d6a2))
+* **folders:** drop contradictory cross-reference to Space statuses ([ad7d377](https://github.com/trustxai/clickup-mcp/commit/ad7d377d965c175d2171754c300643daa7926330))
+
 ## 0.1.0 (2026-07-08)
 
 
