@@ -1,5 +1,5 @@
 [project]
-name = "trustai-clickup-mcp"
+name = "amazing-clickup-mcp"
 version = "0.1.0"
 description = "MCP server for the ClickUp public API (v2 + v3, stdio)."
 readme = "README.md"
@@ -39,9 +39,9 @@ Issues = "https://github.com/trustxai/clickup-mcp/issues"
 Changelog = "https://github.com/trustxai/clickup-mcp/blob/main/CHANGELOG.md"
 
 [project.scripts]
-# Dist + script are both `trustai-clickup-mcp` (ADR-0001: `clickup-mcp` is taken on
-# PyPI) so `uvx trustai-clickup-mcp` resolves with no --from.
-trustai-clickup-mcp = "clickup_mcp.server:main_stdio"
+# Dist + script are both `amazing-clickup-mcp` (ADR-0001 rev2: user-registered PyPI name; `clickup-mcp` is taken on
+# PyPI) so `uvx amazing-clickup-mcp` resolves with no --from.
+amazing-clickup-mcp = "clickup_mcp.server:main_stdio"
 
 [build-system]
 requires = ["hatchling"]

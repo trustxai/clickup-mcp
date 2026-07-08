@@ -20,4 +20,4 @@ RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-CMD ["trustai-clickup-mcp"]
+CMD ["amazing-clickup-mcp"]

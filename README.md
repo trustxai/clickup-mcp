@@ -1,4 +1,4 @@
-# ClickUp MCP Server (trustai-clickup-mcp)
+# ClickUp MCP Server (amazing-clickup-mcp)
 
 A comprehensive [MCP](https://modelcontextprotocol.io) server for the
 [ClickUp public API](https://developer.clickup.com/reference) (v2 + v3), built on the
@@ -8,8 +8,8 @@ stdio transport).
 > Status: under active construction. The full tool table, client configuration blocks,
 > and troubleshooting guide land with the first release.
 >
-> Note: the PyPI distribution is **`trustai-clickup-mcp`** (the bare `clickup-mcp` name
-> is taken by an unrelated package) — always `uvx trustai-clickup-mcp`.
+> Note: the PyPI distribution is **`amazing-clickup-mcp`** (the bare `clickup-mcp` name
+> is taken by an unrelated package) — always `uvx amazing-clickup-mcp`.
 
 ## Features
 
@@ -28,7 +28,7 @@ git clone https://github.com/trustxai/clickup-mcp.git
 cd clickup-mcp
 uv sync --group dev
 cp .env.example .env   # set CLICKUP_API_TOKEN
-uv run trustai-clickup-mcp
+uv run amazing-clickup-mcp
 ```
 
 ## Environment Variables
