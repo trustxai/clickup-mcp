@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/trustxai/clickup-mcp/compare/v0.1.1...v0.1.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* **deps:** cap mcp SDK below 2.0 ([f54d205](https://github.com/trustxai/clickup-mcp/commit/f54d205ce83bd1b851341f625010539a4246ec78))
+* **deps:** cap mcp SDK below 2.0 ([e21e2b2](https://github.com/trustxai/clickup-mcp/commit/e21e2b22601fa770dc95304b80b419c9d7ab2d37))
+
 ## [0.1.1](https://github.com/trustxai/clickup-mcp/compare/v0.1.0...v0.1.1) (2026-07-08)
 
 
